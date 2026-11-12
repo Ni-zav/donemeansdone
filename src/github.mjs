@@ -69,9 +69,14 @@ export async function fetchPublicPullRequest(parsed, requirements, fetcher = fet
     checksComplete = false;
     checkWarning = err instanceof Error ? err.message : "Checks unavailable";
   }
+  let captureStable = false;
+  try {
+    const lastPr = (await get("/pulls/" + number)).data;
+    captureStable = lastPr?.head?.sha === headSha && lastPr?.base?.sha === baseSha;
+  } catch { captureStable = false; }
   const total = Number.isInteger(pr.changed_files) ? pr.changed_files : files.length;
-  const complete = total <= files.length && !partialPatches;
+  const complete = captureStable && total <= files.length && !partialPatches;
   return { source: "github_api_at_head_sha", owner, repo, prNumber: number, headSha, baseSha, files, checks, headFiles,
-    coverage: { complete, checksComplete, filesFetched: files.length, filesTotal: total, patchesPartial: partialPatches, checkWarning,
+    captureStable, coverage: { complete, checksComplete, filesFetched: files.length, filesTotal: total, patchesPartial: partialPatches, checkWarning,
       note: complete ? "Changed-file snapshot complete within budget" : "Only first 50 files and bounded patches analyzed" } };
 }
