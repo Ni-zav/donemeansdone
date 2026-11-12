@@ -42,6 +42,7 @@ export function assess(snap,requirements,model={},mode="disabled"){
  const criteria=normalizeCriteria(requirements),proposals=sanitizeProposals(model,snap,criteria);
  const all=[...(snap.files||[]),...(snap.checks||[])],byId=new Map(all.map(x=>[x.id,x]));
  const rows=criteria.map(r=>{
+  if(snap.captureStable===false)return {...r,verdict:"blocked",reason:"PR HEAD or base moved, or could not be rechecked during evidence collection",evidence:[],nextTest:"Rerun analysis at current PR HEAD",aiReason:""};
   let verdict="insufficient",reason="No requirement-specific proof was available",nextTest="Create and execute a direct acceptance test",refs=[];
   const check=r.check,proposal=proposals.matches.find(x=>x.requirementId===r.id);
   if(check.kind==="head_file_exists"||check.kind==="head_file_contains_literal"){
