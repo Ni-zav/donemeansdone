@@ -109,3 +109,23 @@ test("HTTP demo, analysis and input rejection work without external tokens", asy
   const invalid=await fetch(base+"/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source:{kind:"github",pullRequestUrl:"https://evil.test/a/b/pull/1"},originalRequest:"",requirements:[{text:"Must do something"}]})});
   assert.equal(invalid.status,400);
 });
+
+test("pinned file lookup without its own SHA cannot verify", () => {
+  const f=structuredClone(fixture.snapshot);delete f.headFiles["docs/guide.md"].sha;
+  assert.equal(check(f).results[0].verdict,"blocked");
+});
+test("a changed PR HEAD after collecting evidence blocks all completion claims", async () => {
+  let reads=0;
+  const base=githubMock();
+  const fetcher=async url=>{
+    if(url.endsWith("/pulls/4")) {
+      reads++;
+      if(reads===2)return jsonResponse({head:{sha:"c".repeat(40)},base:{sha:"b".repeat(40)},changed_files:1});
+    }
+    return base(url);
+  };
+  const criteria=normalizeCriteria([{text:"Guide exists",check:{kind:"head_file_exists",path:"docs/test.md"}}]);
+  const snapshot=await fetchPublicPullRequest({owner:"abc",repo:"demo",number:4},criteria,fetcher);
+  assert.equal(snapshot.captureStable,false);
+  assert.equal(assess(snapshot,criteria).results[0].verdict,"blocked");
+});
