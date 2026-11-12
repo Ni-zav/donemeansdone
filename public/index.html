@@ -66,7 +66,7 @@ let last = null;
 function node(tag, text, className){const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;}
 function link(url,label){const a=node("a",label);a.href=url;a.target="_blank";a.rel="noopener noreferrer";return a;}
 function setSource(){const useGithub=$("source").value==="github";$("pr-field").classList.toggle("hidden",!useGithub);$("pr-url").required=useGithub;}
-$("source").addEventListener("change",setSource);
+$("source").addEventListener("change",()=>{if($("source").value==="github")startGithub();else loadDemo().catch(showError);});
 function criterionRow(data){
  if($("criteria").children.length>=8)return;
  const box=node("div",undefined,"criterion");
@@ -88,9 +88,10 @@ function criterionRow(data){
 }
 function renumber(){[...$("criteria").children].forEach((c,i)=>c.querySelector("strong").textContent="Criterion "+(i+1));}
 $("add-criterion").addEventListener("click",()=>criterionRow());
-async function loadDemo(){const r=await fetch("/api/demo");if(!r.ok)throw Error("Demo unavailable");const data=await r.json();$("source").value="fixture";setSource();$("original").value=data.originalRequest;$("criteria").replaceChildren();data.requirements.forEach(criterionRow);}
+async function loadDemo(){const r=await fetch("/api/demo");if(!r.ok)throw Error("Demo unavailable");const data=await r.json();$("source").value="fixture";setSource();$("original").value=data.originalRequest;$("criteria").replaceChildren();data.requirements.forEach(criterionRow);$("results").classList.add("hidden");$("error").classList.add("hidden");}
 $("load-demo").addEventListener("click",()=>loadDemo().catch(showError));
-$("choose-github").addEventListener("click",()=>{$("source").value="github";setSource();$("pr-url").focus();});
+function startGithub(){$("source").value="github";setSource();$("original").value="";$("criteria").replaceChildren();criterionRow();$("results").classList.add("hidden");$("error").classList.add("hidden");$("pr-url").focus();}
+$("choose-github").addEventListener("click",startGithub);
 function showError(err){$("error").textContent=err instanceof Error?err.message:String(err);$("error").classList.remove("hidden");}
 function makeCriteria(){
  return [...$("criteria").children].map((box,i)=>{

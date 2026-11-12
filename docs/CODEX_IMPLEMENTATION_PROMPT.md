@@ -2,7 +2,7 @@
 
 You are the engineering lead, critical reviewer, accessibility tester and release preparer for the existing repository **Ni-zav/donemeansdone**.
 
-**Start by inspecting the actual code.** Read AGENTS.md, README.md, docs/MVP_BLUEPRINT.md, docs/TRUST_MODEL.md, docs/MVP_SCOPE.md and the latest PR branch. The active implementation branch is feat/mvp-evidence-engine, draft PR #1. Continue that branch/PR; do not create competing branches or reset work. Preserve unrelated changes.
+**Start by inspecting the actual code.** Read AGENTS.md, README.md, docs/MVP_BLUEPRINT.md, docs/TRUST_MODEL.md, docs/MVP_SCOPE.md and the latest PR branch. The MVP was merged to main through PR #1. Continue from the latest main commit, use a short-lived feature branch for changes unless the owner explicitly requests direct main edits, and do not reset existing work. Preserve unrelated changes.
 
 ## Mission
 
@@ -14,7 +14,7 @@ Finish a real, demonstrable AI OpenBuild MVP that lets users paste their origina
 2. Make reasonable engineering decisions autonomously; do not request routine approval. Stop only for security-sensitive, destructive or external actions that genuinely need human decisions.
 3. Critically self-review every implemented slice; run npm run check, npm test and feasible browser tests, fix failures, rerun, and record actual commands/results.
 4. Never invent successful tests, a deployed URL, an authenticated live model call, eligibility, or organizer approval.
-5. Push to existing feature branch and update draft PR #1 with concrete evidence; avoid force-push and avoid merging until release gates pass.
+5. Push changes to the intended branch and update an associated PR (if any) with concrete evidence; do not force-push or claim CI passed without checking the exact head commit.
 6. Keep AGENTS.md compact and no scope creep.
 
 ## Immediate tasks, priority order

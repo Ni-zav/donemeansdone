@@ -4,7 +4,7 @@
 
 DoneMeansDone is a read-only pull-request acceptance-criteria analyzer for AI-assisted software development. You tell it what you asked Codex or another coding agent to deliver, confirm up to eight criteria, and provide a public GitHub PR. AI proposes **possible relationships** to changed files; a separate deterministic checker decides what can actually be verified.
 
-**Hackathon:** [AI OpenBuild](https://ai-openbuild.devpost.com/) · **Status:** functional MVP under development, currently in [draft PR #1](https://github.com/Ni-zav/donemeansdone/pull/1). Eligibility and final submission are **not confirmed**.
+**Hackathon:** [AI OpenBuild](https://ai-openbuild.devpost.com/) · **Status:** functional MVP merged to `main` via [PR #1](https://github.com/Ni-zav/donemeansdone/pull/1). Public deployment, live model execution, participant eligibility and Devpost submission are **not confirmed**.
 
 ## Run locally
 
@@ -13,7 +13,7 @@ Requires Node.js **22+**. There are **no runtime npm dependencies**.
 ```bash
 git clone https://github.com/Ni-zav/donemeansdone.git
 cd donemeansdone
-git checkout feat/mvp-evidence-engine
+git checkout main
 npm run check
 npm test
 npm start

@@ -31,6 +31,11 @@ try {
   await page.screenshot({path:"test-results/demo-desktop.png",fullPage:true});
   await page.getByRole("button",{name:"Analyze a public PR"}).click();
   assert.equal(await page.locator("#pr-url").isVisible(),true);
+  assert.equal(await page.locator(".criterion-text").count(),1,"real analysis starts with one fresh criterion");
+  assert.equal(await page.locator(".criterion-text").inputValue(),"","fictional criteria must not leak into real PR analysis");
+  assert.equal(await page.locator("#original").inputValue(),"","fictional task must not leak into real PR analysis");
+  await page.locator(".criterion-text").fill("Add a working menu");
+  await page.locator("#original").fill("Implement a real navigation menu");
   await page.locator("#pr-url").fill("https://not-github.example/a/b/pull/1");
   await page.getByRole("button",{name:"Analyze evidence"}).click();
   await page.getByRole("alert").waitFor();

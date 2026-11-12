@@ -4,6 +4,15 @@ This file records observations from actual GitHub Actions rather than assuming t
 
 ## Verified GitHub Actions results — November 12, 2026
 
+**MVP merge:** PR #1 was squash-merged into main as `1049c429c239e464b3f9ac16d61ed924a8a2813b` after two successful workflows on feature SHA `ec9065b1e4974b1f5ac7b89bab98e6cf23c9a540`:
+
+- [Run 43238652224](https://github.com/Ni-zav/donemeansdone/actions/runs/43238652224) — completed, success.
+- [Run 43238634978](https://github.com/Ni-zav/donemeansdone/actions/runs/43238634978) — completed, success.
+
+This version added eight regression tests covering ambiguous CI runs, partial check inventory, fictional evidence links, Markdown escaping, invalid UTF-8 and the original request reaching the model adapter. The Node suite contains **26 tests** in total. Browser execution ran separately. These tests do not establish a live LLM request or public deployment.
+
+### Earlier baseline
+
 **Commit:** c9bba879be94f4303df1d2c14e230a1fbbc24b8d
 
 - [Workflow run 43235790926](https://github.com/Ni-zav/donemeansdone/actions/runs/43235790926) — completed, success.

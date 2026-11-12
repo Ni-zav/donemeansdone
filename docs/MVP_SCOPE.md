@@ -2,7 +2,7 @@
 
 **Product:** DoneMeansDone — evidence-linked public GitHub PR acceptance review. **Current implementation choice:** zero-dependency Node.js 22 HTTP service + client-rendered accessible HTML, to get a verifiable working MVP without deployment/dependency setup. The previous Next.js/Tailwind design was advisory, not an immutable requirement.
 
-## Implemented acceptance surface (subject to CI verification)
+## Implemented acceptance surface (CI validated for PR #1; future commits require their own verification)
 1. Read-only public GitHub PR URL validation and file/check metadata.
 2. Explicit, user-confirmed criteria: \`head_file_exists\`, \`head_file_contains_literal\`, \`named_ci_check_success\`, and unverified semantic request (\`none\`).
 3. Conservative verifier with pinned SHA and five dispositions: verified, supported, contradicted, insufficient, blocked.
