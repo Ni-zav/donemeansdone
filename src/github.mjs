@@ -48,9 +48,18 @@ export async function fetchPublicPullRequest(parsed, requirements, fetcher = fet
       if (obj?.type !== "file" || obj?.encoding !== "base64" || typeof obj.content !== "string" || obj.size > 100000) {
         headFiles[path] = { status: "unavailable" }; return;
       }
-      const bytes = Buffer.from(obj.content.replace(/\s/g, ""), "base64");
-      if (bytes.length > 100000) { headFiles[path] = { status: "unavailable" }; return; }
-      headFiles[path] = { status: "found", sha: headSha, content: bytes.toString("utf8") };
+      const encoded = obj.content.replace(/\s/g, "");
+      if (encoded.length > 135000 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) {
+        headFiles[path] = { status: "unavailable" }; return;
+      }
+      const bytes = Buffer.from(encoded, "base64");
+      if (!Number.isInteger(obj.size) || bytes.length !== obj.size || bytes.length > 100000 || bytes.includes(0)) {
+        headFiles[path] = { status: "unavailable" }; return;
+      }
+      let content;
+      try { content = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+      catch { headFiles[path] = { status: "unavailable" }; return; }
+      headFiles[path] = { status: "found", sha: headSha, content };
     } catch {
       headFiles[path] = { status: "unavailable" };
     }
@@ -60,7 +69,7 @@ export async function fetchPublicPullRequest(parsed, requirements, fetcher = fet
     const data = (await get("/commits/" + headSha + "/check-runs?per_page=50&page=1")).data;
     const rawChecks = data?.check_runs;
     if (!Array.isArray(rawChecks)) throw Error("Unrecognized check list");
-    checksComplete = Number(data.total_count || 0) <= rawChecks.length;
+    checksComplete = Number.isInteger(data.total_count) && data.total_count === rawChecks.length && rawChecks.length <= 50;
     checks = rawChecks.map((c, i) => ({
       id: "ci:" + i, name: c.name, headSha: c.head_sha || null, status: c.status,
       conclusion: c.conclusion, url: typeof c.html_url === "string" && c.html_url.startsWith("https://github.com/") ? c.html_url : ""
@@ -75,7 +84,7 @@ export async function fetchPublicPullRequest(parsed, requirements, fetcher = fet
     captureStable = lastPr?.head?.sha === headSha && lastPr?.base?.sha === baseSha;
   } catch { captureStable = false; }
   const total = Number.isInteger(pr.changed_files) ? pr.changed_files : files.length;
-  const complete = captureStable && total <= files.length && !partialPatches;
+  const complete = captureStable && total === files.length && files.length <= 50 && !partialPatches;
   return { source: "github_api_at_head_sha", owner, repo, prNumber: number, headSha, baseSha, files, checks, headFiles,
     captureStable, coverage: { complete, checksComplete, filesFetched: files.length, filesTotal: total, patchesPartial: partialPatches, checkWarning,
       note: complete ? "Changed-file snapshot complete within budget" : "Only first 50 files and bounded patches analyzed" } };
