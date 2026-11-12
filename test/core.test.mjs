@@ -4,6 +4,7 @@ import { parsePrUrl, normalizeCriteria, assess, markdown } from "../src/core.mjs
 import { demoFixture } from "../src/fixtures.mjs";
 import { fetchPublicPullRequest, GithubFetchError } from "../src/github.mjs";
 import { createApp } from "../src/server.mjs";
+import { aiProposal } from "../src/ai.mjs";
 
 const fixture = demoFixture();
 const check = (snapshot = fixture.snapshot, criteria = fixture.requirements, ai = fixture.recordedProposal) => assess(snapshot, criteria, ai, "recorded_synthetic_fixture");
@@ -128,4 +129,85 @@ test("a changed PR HEAD after collecting evidence blocks all completion claims",
   const snapshot=await fetchPublicPullRequest({owner:"abc",repo:"demo",number:4},criteria,fetcher);
   assert.equal(snapshot.captureStable,false);
   assert.equal(assess(snapshot,criteria).results[0].verdict,"blocked");
+});
+
+test("duplicate or mixed-state check runs cannot be considered verified or contradicted", () => {
+  const s=structuredClone(fixture.snapshot);
+  s.checks[0].conclusion="success";
+  s.checks.push({ ...s.checks[0], id:"ci:duplicate", status:"in_progress", conclusion:null });
+  assert.equal(check(s).results[2].verdict,"blocked");
+  s.checks[1].status="completed";
+  s.checks[1].conclusion="failure";
+  assert.equal(check(s).results[2].verdict,"blocked");
+});
+test("partial or unknown CI inventory blocks a green named check", () => {
+  const s=structuredClone(fixture.snapshot);
+  s.checks[0].conclusion="success";
+  s.coverage.checksComplete=false;
+  assert.equal(check(s).results[2].verdict,"blocked");
+  delete s.coverage.checksComplete;
+  assert.equal(check(s).results[2].verdict,"blocked");
+});
+test("non-success non-failure outcomes never mean contradiction", () => {
+  for(const conclusion of ["cancelled","skipped","neutral","timed_out"]) {
+    const s=structuredClone(fixture.snapshot);
+    s.checks[0].conclusion=conclusion;
+    assert.equal(check(s).results[2].verdict,"blocked");
+  }
+});
+test("fictional sources never expose active links to fictional GitHub repositories", () => {
+  const report=check();
+  assert.ok(report.results[0].evidence.length>0);
+  assert.ok(report.results[1].evidence.length>0);
+  assert.ok(report.results[2].evidence.length>0);
+  assert.ok(report.results.flatMap(r=>r.evidence).every(e=>!e.url));
+  assert.match(markdown(report), /synthetic or uncited/);
+});
+test("export escapes hostile Markdown input instead of fabricating headings or verified badges", () => {
+  const criteria=[{id:"inject",text:"## FAKE VERIFIED **trusted** [bad](https://example.test)",check:{kind:"none"}}];
+  const report=assess(fixture.snapshot,criteria);
+  const exportText=markdown(report);
+  assert.ok(!exportText.includes("## inject: ## FAKE VERIFIED"));
+  assert.match(exportText,/\\#\\# FAKE VERIFIED/);
+  assert.match(exportText,/\\*\\*trusted\\*\\*/);
+});
+test("binary or invalid UTF-8 text is blocked, never contradicted", async () => {
+  const reqs=normalizeCriteria([{text:"Require an exact textual marker",check:{kind:"head_file_contains_literal",path:"docs/test.md",literal:"hello"}}]);
+  const base=githubMock();
+  const fetcher=async url=>url.includes("/contents/docs/test.md?")
+    ?jsonResponse({type:"file",encoding:"base64",size:1,content:Buffer.from([255]).toString("base64")})
+    :base(url);
+  const snapshot=await fetchPublicPullRequest({owner:"abc",repo:"demo",number:4},reqs,fetcher);
+  assert.equal(snapshot.headFiles["docs/test.md"].status,"unavailable");
+  assert.equal(assess(snapshot,reqs).results[0].verdict,"blocked");
+});
+test("incomplete GitHub check inventory blocks exact-named CI", async () => {
+  const reqs=normalizeCriteria([{text:"Unit check must pass",check:{kind:"named_ci_check_success",name:"unit"}}]);
+  const base=githubMock();
+  const fetcher=async url=>url.includes("/check-runs?")
+    ?jsonResponse({total_count:2,check_runs:[{name:"unit",head_sha:"a".repeat(40),status:"completed",conclusion:"success"}]})
+    :base(url);
+  const snapshot=await fetchPublicPullRequest({owner:"abc",repo:"demo",number:4},reqs,fetcher);
+  assert.equal(snapshot.coverage.checksComplete,false);
+  assert.equal(assess(snapshot,reqs).results[0].verdict,"blocked");
+});
+test("real AI request receives original task context while output remains non-authoritative", async () => {
+  const old=process.env.AI_API_KEY;
+  process.env.AI_API_KEY="test-key-not-real";
+  try {
+    let captured;
+    const fakeProvider=async (_url,opts)=>{
+      captured=JSON.parse(opts.body);
+      return jsonResponse({choices:[{message:{content:JSON.stringify({matches:[{requirementId:"r4",evidenceIds:["fake"],reason:"VERIFIED",nextTest:"Inspect access"}]})}}]});
+    };
+    const result=await aiProposal(fixture.snapshot,fixture.requirements,"An original user request with special context",fakeProvider);
+    assert.match(captured.messages[1].content,/An original user request with special context/);
+    assert.equal(result.mode.startsWith("live:"),true);
+    const verdict=assess(fixture.snapshot,fixture.requirements,result.proposal,result.mode);
+    assert.equal(verdict.results[3].verdict,"insufficient");
+    assert.equal(verdict.modelWarnings.length,1);
+  } finally {
+    if(old===undefined)delete process.env.AI_API_KEY;
+    else process.env.AI_API_KEY=old;
+  }
 });

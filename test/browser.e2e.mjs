@@ -16,6 +16,7 @@ try {
   await page.getByRole("heading",{name:"Evidence report"}).waitFor();
   const verdicts=await page.locator(".report-card .status").allTextContents();
   assert.deepEqual(verdicts,["verified","supported","contradicted","insufficient"]);
+  assert.equal(await page.locator(".report-card a").count(),0,"synthetic citations must not navigate to fictional repositories");
   assert.equal(await page.locator("#summary").textContent().then(t=>t.includes("synthetic_fixture")),true);
   assert.equal(await page.locator("#warnings").textContent().then(t=>t.includes("recorded and synthetic")),true);
   const scroll=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
