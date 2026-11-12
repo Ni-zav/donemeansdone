@@ -1,0 +1,16 @@
+{
+  "name": "donemeansdone",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only AI-assisted, deterministic PR acceptance verifier",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/core.test.mjs",
+    "check": "node --check src/core.mjs && node --check src/fixtures.mjs && node --check src/github.mjs && node --check src/ai.mjs && node --check src/server.mjs",
+    "test:browser": "node test/browser.e2e.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

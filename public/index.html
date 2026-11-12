@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DoneMeansDone — evidence before confidence</title>
+<style>
+:root{color-scheme:dark;--bg:#09111e;--panel:#101d30;--panel2:#152640;--line:#28405d;--text:#eff6ff;--muted:#a9bdd4;--accent:#64dfba;--warn:#ffce79;--bad:#fa9a9a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% 0%,#14334a 0%,var(--bg) 45%);color:var(--text);font:15px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif}
+button,input,textarea,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text);padding:10px 15px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:#062018;border-color:var(--accent);font-weight:700}button:hover{filter:brightness(1.13)}button:disabled{opacity:.55;cursor:wait}
+input,textarea,select{width:100%;padding:10px;border:1px solid var(--line);background:#0a1728;color:var(--text);border-radius:8px}
+textarea{min-height:75px;resize:vertical}a{color:#96e9d0}p{margin:.35rem 0 1.2rem}
+.shell{max-width:1040px;margin:0 auto;padding:32px 20px 84px}
+header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-bottom:30px}
+.logo{font-weight:850;letter-spacing:-.6px;font-size:20px}header span{font-size:12px;color:var(--muted)}
+.hero{padding:28px 0 25px;max-width:760px}h1{font-size:clamp(35px,5vw,62px);line-height:1.12;letter-spacing:-2px;margin:0 0 20px}
+h1 strong{color:var(--accent)}h2{font-size:22px;margin:0 0 8px}h3{font-size:17px;margin:0 0 7px}
+.muted,small{color:var(--muted)}.intro{font-size:17px;color:#c0d5e7}
+.panel{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin-top:22px;box-shadow:0 12px 30px #0002}
+.stack{display:grid;gap:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:grid;gap:6px;color:var(--muted);font-size:13px;font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.criteria{display:grid;gap:12px;margin:15px 0}
+.criterion{border:1px solid var(--line);background:#0d192b;border-radius:12px;padding:15px;display:grid;gap:12px}
+.criterion-head{display:flex;align-items:center;justify-content:space-between}
+.criterion-head button{padding:3px 9px}
+.criterion-inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hidden{display:none!important}.hint{font-size:12px;color:var(--muted)}
+.report-card{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:11px;padding:18px;margin:12px 0;background:#0e1b2d}
+.report-card.verified{border-left-color:var(--accent)}.report-card.supported{border-left-color:#87b9ff}
+.report-card.contradicted{border-left-color:var(--bad)}.report-card.blocked{border-left-color:var(--warn)}
+.status{display:inline-flex;padding:2px 9px;border:1px solid currentColor;border-radius:24px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;font-weight:800}
+.status.verified{color:var(--accent)}.status.supported{color:#87b9ff}.status.contradicted{color:var(--bad)}
+.status.blocked{color:var(--warn)}.status.insufficient{color:#abbad2}
+.evidence-list{margin:8px 0;padding-left:20px;overflow-wrap:anywhere}
+.long{overflow-wrap:anywhere}code{font-size:12px;color:#b8e9f8}
+.notice{border:1px solid #896f39;border-radius:9px;background:#332a19;color:#ffe1a3;padding:10px 13px;margin-top:12px}
+.footer{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media(max-width:680px){.shell{padding:16px 14px 55px}header{padding:12px 0 20px}.grid,.criterion-inputs{grid-template-columns:1fr}h1{letter-spacing:-1px}.panel{padding:16px}.hero{padding:13px 0}}
+</style></head>
+<body><div class="shell">
+<header><div class="logo">DoneMeansDone <span> / Evidence over assertion</span></div><span>AI OpenBuild MVP · Read-only</span></header>
+<section class="hero"><h1>“Implemented” isn't <strong>verified.</strong></h1>
+<p class="intro">Compare your original coding request to a public pull request. AI suggests evidence. Deterministic checks decide what can actually be claimed.</p>
+<div class="actions"><button class="primary" id="load-demo">Try synthetic demo</button><button id="choose-github">Analyze a public PR</button></div></section>
+<section class="panel" aria-labelledby="analysis-label"><h2 id="analysis-label">Analyze requirements</h2>
+<p class="muted">Only analyze public repositories you are authorized to share with an AI provider. The sample is fictional and requires no credentials or model key.</p>
+<form id="analysis-form" class="stack">
+<div class="grid"><label>Source <select id="source"><option value="fixture">Synthetic demo (labeled)</option><option value="github">Public GitHub pull request</option></select></label>
+<label id="pr-field" class="hidden">Public PR URL <input id="pr-url" type="url" placeholder="https://github.com/owner/repo/pull/123" autocomplete="off"></label></div>
+<label>Original coding request (for reviewer context)<textarea id="original" maxlength="4000" placeholder="The original user instruction"></textarea></label>
+<div><h3>Confirmed, atomic acceptance criteria</h3><p class="hint">These are your criteria; the AI cannot silently rewrite them. Only explicit checks can be verified.</p><div id="criteria" class="criteria"></div>
+<button type="button" id="add-criterion">+ Add criterion</button></div>
+<div class="actions"><label style="display:flex;align-items:center;gap:8px"><input style="width:auto" type="checkbox" id="enable-ai" checked>Suggest matches using AI</label>
+<button type="submit" id="analyze" class="primary">Analyze evidence</button></div>
+<p class="hint">Fixture: recorded synthetic suggestions unless a real model key is configured. GitHub: no repository writes or code execution. An API key is server-side only.</p>
+</form><div id="error" class="notice hidden" role="alert"></div></section>
+<section id="results" class="panel hidden" aria-live="polite"><div class="actions" style="justify-content:space-between"><h2>Evidence report</h2>
+<div class="actions"><button id="export-md">Export Markdown</button><button id="export-json">Export JSON</button></div></div>
+<div id="summary"></div><div id="warnings"></div><div id="report-rows"></div></section>
+<footer class="footer">No score, certification, or safe-to-merge guarantee. A file check proves file content, not functionality. <a href="https://github.com/Ni-zav/donemeansdone" target="_blank" rel="noopener noreferrer">Open-source repository</a>.</footer>
+</div>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+let last = null;
+function node(tag, text, className){const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;}
+function link(url,label){const a=node("a",label);a.href=url;a.target="_blank";a.rel="noopener noreferrer";return a;}
+function setSource(){const useGithub=$("source").value==="github";$("pr-field").classList.toggle("hidden",!useGithub);$("pr-url").required=useGithub;}
+$("source").addEventListener("change",setSource);
+function criterionRow(data){
+ if($("criteria").children.length>=8)return;
+ const box=node("div",undefined,"criterion");
+ const head=node("div",undefined,"criterion-head");
+ head.append(node("strong","Criterion "+($("criteria").children.length+1)));
+ const remove=node("button","Remove");remove.type="button";remove.addEventListener("click",()=>{box.remove();renumber();});
+ head.append(remove);box.append(head);
+ const textLabel=node("label","Requirement");const text=node("textarea");text.className="criterion-text";text.maxLength=500;text.required=true;text.value=data?.text||"";textLabel.append(text);box.append(textLabel);
+ const inputs=node("div",undefined,"criterion-inputs");
+ const ruleLabel=node("label","Direct acceptance check");const select=node("select");
+ select.className="criterion-kind";
+ [["none","None — AI hypothesis only"],["head_file_exists","File exists at HEAD"],["head_file_contains_literal","HEAD file contains exact text"],["named_ci_check_success","Named CI check succeeds"]].forEach(([value,title])=>{const option=node("option",title);option.value=value;select.append(option);});
+ select.value=data?.check?.kind||"none";ruleLabel.append(select);
+ const detailLabel=node("label","Path or exact CI name");const detail=node("input");detail.className="criterion-detail";detail.placeholder="docs/guide.md or unit";detail.value=data?.check?.path||data?.check?.name||"";detailLabel.append(detail);
+ const literalLabel=node("label","Exact literal (for text check)");const literal=node("input");literal.className="criterion-literal";literal.value=data?.check?.literal||"";literal.maxLength=200;literalLabel.append(literal);
+ inputs.append(ruleLabel,detailLabel,literalLabel);box.append(inputs);
+ function change(){const kind=select.value;detailLabel.classList.toggle("hidden",kind==="none");literalLabel.classList.toggle("hidden",kind!=="head_file_contains_literal");detail.required=kind!=="none";literal.required=kind==="head_file_contains_literal";}
+ select.addEventListener("change",change);change();$("criteria").append(box);
+}
+function renumber(){[...$("criteria").children].forEach((c,i)=>c.querySelector("strong").textContent="Criterion "+(i+1));}
+$("add-criterion").addEventListener("click",()=>criterionRow());
+async function loadDemo(){const r=await fetch("/api/demo");if(!r.ok)throw Error("Demo unavailable");const data=await r.json();$("source").value="fixture";setSource();$("original").value=data.originalRequest;$("criteria").replaceChildren();data.requirements.forEach(criterionRow);}
+$("load-demo").addEventListener("click",()=>loadDemo().catch(showError));
+$("choose-github").addEventListener("click",()=>{$("source").value="github";setSource();$("pr-url").focus();});
+function showError(err){$("error").textContent=err instanceof Error?err.message:String(err);$("error").classList.remove("hidden");}
+function makeCriteria(){
+ return [...$("criteria").children].map((box,i)=>{
+  const kind=box.querySelector(".criterion-kind").value,detail=box.querySelector(".criterion-detail").value.trim();
+  const check={kind};
+  if(kind.startsWith("head_file"))check.path=detail;
+  if(kind==="named_ci_check_success")check.name=detail;
+  if(kind==="head_file_contains_literal")check.literal=box.querySelector(".criterion-literal").value;
+  return {id:"r"+(i+1),text:box.querySelector(".criterion-text").value,check};
+ });
+}
+$("analysis-form").addEventListener("submit",async ev=>{
+ ev.preventDefault();$("error").classList.add("hidden");$("analyze").disabled=true;$("analyze").textContent="Analyzing…";
+ try{
+  const input={source:$("source").value==="fixture"?{kind:"fixture"}:{kind:"github",pullRequestUrl:$("pr-url").value.trim()},
+   originalRequest:$("original").value,requirements:makeCriteria(),enableAi:$("enable-ai").checked};
+  const res=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(input)});
+  const data=await res.json();if(!res.ok)throw Error(data.error||"Analysis failed");last=data;renderReport(data);$("results").classList.remove("hidden");$("results").scrollIntoView({behavior:"smooth",block:"start"});
+ }catch(err){showError(err);}finally{$("analyze").disabled=false;$("analyze").textContent="Analyze evidence";}
+});
+function renderReport(data){
+ const report=data.report;const summary=$("summary");summary.replaceChildren();
+ const title=node("p",report.repository+" · PR #"+report.prNumber);summary.append(title);
+ const sha=node("p",undefined,"muted long");sha.append("HEAD: ");sha.append(node("code",report.headSha));summary.append(sha);
+ summary.append(node("p","Source: "+report.source+" | AI: "+report.modelMode+" | Changed files: "+report.coverage?.filesFetched+"/"+report.coverage?.filesTotal+" | Coverage: "+(report.coverage?.complete?"Complete within limits":"Partial or uncertain"),"muted"));
+ const warningEl=$("warnings");warningEl.replaceChildren();
+ if(data.warning)warningEl.append(node("div",data.warning,"notice"));
+ if(report.modelWarnings?.length)warningEl.append(node("div",report.modelWarnings.join("; "),"notice"));
+ if(report.coverage?.checkWarning)warningEl.append(node("div","CI: "+report.coverage.checkWarning,"notice"));
+ const container=$("report-rows");container.replaceChildren();
+ for(const r of report.results){
+  const card=node("article",undefined,"report-card "+r.verdict);
+  const h=node("h3",r.text);card.append(h);card.append(node("span",r.verdict,"status "+r.verdict));
+  card.append(node("p",r.reason));
+  if(r.aiReason)card.append(node("p","AI hypothesis: "+r.aiReason,"muted"));
+  const evidence=node("div");evidence.append(node("strong","Evidence: "));
+  if(!r.evidence.length)evidence.append(node("span","None cited","muted"));
+  else{const ul=node("ul",undefined,"evidence-list");for(const e of r.evidence){const li=node("li");if(e.url)li.append(link(e.url,e.label));else li.append(node("span",e.label+" (synthetic or uncited)","muted"));ul.append(li);}evidence.append(ul);}
+  card.append(evidence);card.append(node("p","Next check: "+r.nextTest,"muted"));container.append(card);
+ }
+}
+function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+$("export-md").addEventListener("click",()=>{if(last)download("donemeansdone-report.md",last.markdown,"text/markdown");});
+$("export-json").addEventListener("click",()=>{if(last)download("donemeansdone-report.json",JSON.stringify(last.report,null,2),"application/json");});
+loadDemo().catch(showError);
+</script></body></html>
