@@ -18,3 +18,26 @@ jobs:
         run: npm run check
       - name: Deterministic unit, GitHub mock and HTTP tests
         run: npm test
+
+  browser:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser dependency
+        run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Exercise fixture, responsive layout, export and invalid PR URL
+        run: node test/browser.e2e.mjs
+      - name: Archive screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: done-means-done-browser
+          path: test-results/*.png
+          if-no-files-found: ignore
