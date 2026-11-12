@@ -48,11 +48,11 @@ export async function fetchPublicPullRequest(parsed, requirements, fetcher = fet
       if (obj?.type !== "file" || obj?.encoding !== "base64" || typeof obj.content !== "string" || obj.size > 100000) {
         headFiles[path] = { status: "unavailable" }; return;
       }
-      const encoded = obj.content.replace(/\s/g, "");
-      if (encoded.length > 135000 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) {
+      const base64Text = obj.content.replace(/\s/g, "");
+      if (base64Text.length > 135000 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64Text)) {
         headFiles[path] = { status: "unavailable" }; return;
       }
-      const bytes = Buffer.from(encoded, "base64");
+      const bytes = Buffer.from(base64Text, "base64");
       if (!Number.isInteger(obj.size) || bytes.length !== obj.size || bytes.length > 100000 || bytes.includes(0)) {
         headFiles[path] = { status: "unavailable" }; return;
       }
