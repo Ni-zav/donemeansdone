@@ -46,7 +46,7 @@ export function assess(snap,requirements,model={},mode="disabled"){
   const check=r.check,proposal=proposals.matches.find(x=>x.requirementId===r.id);
   if(check.kind==="head_file_exists"||check.kind==="head_file_contains_literal"){
    const f=snap.headFiles?.[check.path];
-   if(!f||f.status==="unavailable"||f.sha&&f.sha!==snap.headSha){verdict="blocked";reason="Pinned HEAD file unavailable or stale";}
+   if(!f||f.status==="unavailable"||f.sha!==snap.headSha){verdict="blocked";reason="Pinned HEAD file unavailable or stale";}
    else if(f.status==="absent"){verdict="contradicted";reason="Required file absent at exact HEAD";}
    else if(f.status!=="found"){verdict="blocked";reason="Unrecognized file lookup state";}
    else if(check.kind==="head_file_exists"){verdict="verified";reason="File exists at exact HEAD; no runtime behavior was checked";}
