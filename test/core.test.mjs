@@ -11,7 +11,7 @@ const check = (snapshot = fixture.snapshot, criteria = fixture.requirements, ai 
 
 test("T01/T04/T07/T05: golden synthetic example shows exactly four conservative verdicts", () => {
   assert.deepEqual(check().results.map(r => r.verdict), ["verified","supported","contradicted","insufficient"]);
-  assert.match(markdown(check()), /synthetic_fixture/);
+  assert.ok(markdown(check()).includes("synthetic\\_fixture"));
 });
 test("T02: confirmed missing HEAD file contradicts existence criterion", () => {
   const f=structuredClone(fixture.snapshot);f.headFiles["docs/guide.md"]={status:"absent",sha:f.headSha};
@@ -57,7 +57,9 @@ test("T14: URL parser rejects SSRF, credentials, fragments, ports and wrong path
   assert.deepEqual(parsePrUrl("https://github.com/abc/demo/pull/42?files=1"),{owner:"abc",repo:"demo",number:42});
 });
 test("T15: report always pins evidence to specific HEAD SHA", () => {
-  const r=check();
+  const snap=structuredClone(fixture.snapshot);
+  snap.source="github_api_at_head_sha"; // link-generation test using a mocked GitHub-style snapshot
+  const r=assess(snap,fixture.requirements,fixture.recordedProposal);
   assert.equal(r.headSha,"a".repeat(40));
   assert.match(r.results[0].evidence[0].url,new RegExp(r.headSha));
 });
