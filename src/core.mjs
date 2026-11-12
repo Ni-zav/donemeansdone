@@ -54,20 +54,21 @@ export function assess(snap,requirements,model={},mode="disabled"){
    else if(typeof f.content!=="string"){verdict="blocked";reason="Bounded UTF-8 contents unavailable";}
    else if(f.content.includes(check.literal)){verdict="verified";reason="Exact literal present at HEAD; behavior untested";}
    else{verdict="contradicted";reason="Exact literal absent from fetched HEAD file";}
-   if(f?.status==="found"&&snap.owner&&snap.repo)refs=[{id:"headfile:"+check.path,label:check.path,url:"https://github.com/"+snap.owner+"/"+snap.repo+"/blob/"+snap.headSha+"/"+check.path.split("/").map(encodeURIComponent).join("/")}];
+   if(f?.status==="found"&&snap.owner&&snap.repo)refs=[{id:"headfile:"+check.path,label:check.path,...(snap.source==="synthetic_fixture"?{}:{url:"https://github.com/"+snap.owner+"/"+snap.repo+"/blob/"+snap.headSha+"/"+check.path.split("/").map(encodeURIComponent).join("/")})}];
    nextTest="Check behavioral acceptance separately if behavior was requested";
   } else if(check.kind==="named_ci_check_success"){
    const hits=(snap.checks||[]).filter(c=>c.name===check.name&&c.headSha===snap.headSha);
-   const success=hits.filter(c=>c.status==="completed"&&c.conclusion==="success"),failure=hits.filter(c=>c.status==="completed"&&c.conclusion==="failure");
-   refs=hits.filter(c=>typeof c.url==="string"&&c.url.startsWith("https://github.com/")).map(c=>({id:c.id,label:c.name,url:c.url}));
-   if(snap.coverage?.checksComplete===false){verdict="blocked";reason="CI check inventory incomplete";}
-   else if(success.length===1&&!failure.length){verdict="verified";reason="GitHub reports this named check successful at exact HEAD, not general feature correctness";}
-   else if(failure.length&&!success.length){verdict="contradicted";reason="This explicitly named check failed at exact HEAD";}
-   else if(hits.length){verdict="blocked";reason="Check still pending, skipped, ambiguous or stale";}
-   else{verdict="insufficient";reason="No qualifying check at exact HEAD";}
+   refs=hits.map(c=>({id:c.id,label:c.name,...(snap.source==="synthetic_fixture"||typeof c.url!=="string"||!c.url.startsWith("https://github.com/")?{}:{url:c.url})}));
+   if(snap.coverage?.checksComplete!==true){verdict="blocked";reason="CI check inventory incomplete or unconfirmed";}
+   else if(hits.length===0){verdict="insufficient";reason="No qualifying check at exact HEAD";}
+   else if(hits.length!==1){verdict="blocked";reason="Multiple matching CI runs are ambiguous (retries or duplicate names); cannot select a winner";}
+   else if(hits[0].status!=="completed"){verdict="blocked";reason="Named CI check is not complete";}
+   else if(hits[0].conclusion==="success"){verdict="verified";reason="GitHub reports this named check successful at exact HEAD, not general feature correctness";}
+   else if(hits[0].conclusion==="failure"){verdict="contradicted";reason="This explicitly named check failed at exact HEAD";}
+   else{verdict="blocked";reason="Named check concluded without an unambiguous success or failure";}
    nextTest="Run the explicitly named CI check on current HEAD";
   } else {
-   refs=(proposal?.evidenceIds||[]).map(id=>byId.get(id)).filter(e=>e&&typeof e.url==="string"&&e.url.startsWith("https://github.com/")).map(e=>({id:e.id,label:e.path||e.name||e.id,url:e.url}));
+   refs=(proposal?.evidenceIds||[]).map(id=>byId.get(id)).filter(Boolean).map(e=>({id:e.id,label:e.path||e.name||e.id,...(snap.source==="synthetic_fixture"||typeof e.url!=="string"||!e.url.startsWith("https://github.com/")?{}:{url:e.url})}));
    if(refs.length){verdict="supported";reason="AI suggests authentic evidence is relevant; this is a hypothesis, not proof";}
    else if(snap.coverage?.complete===false){verdict="blocked";reason="Snapshot coverage incomplete and no relevant proof";}
    nextTest=proposal?.nextTest||nextTest;
@@ -78,6 +79,7 @@ export function assess(snap,requirements,model={},mode="disabled"){
 }
 
 export function markdown(report){
- const safe=v=>String(v??"").replace(/[\r\n]/g," ").replace(/\|/g,"\\|");
- return ["# DoneMeansDone evidence report","","Source: "+safe(report.source)+" | "+safe(report.repository)+"#"+safe(report.prNumber),"HEAD: "+safe(report.headSha),"AI: "+safe(report.modelMode),"Coverage: "+(report.coverage?.complete?"complete":"partial"),"","Not a certification or safe-to-merge claim.",...report.results.flatMap(r=>["","## "+safe(r.id)+": "+safe(r.text),"**"+r.verdict.toUpperCase()+"** — "+safe(r.reason),"Next: "+safe(r.nextTest),...r.evidence.map(e=>"- "+safe(e.label)+": "+e.url)])].join("\n");
+ const safe=v=>String(v??"").replace(/[\x00-\x1f\x7f]/g," ").replace(/([\\`*_{}\[\]<>#+.!|()-])/g,"\\$1");
+ const evidence=e=>e.url?"- ["+safe(e.label)+"]("+e.url+")":"- "+safe(e.label)+" (synthetic or uncited)";
+ return ["# DoneMeansDone evidence report","","Source: "+safe(report.source)+" | "+safe(report.repository)+" #"+safe(report.prNumber),"HEAD: "+safe(report.headSha),"AI: "+safe(report.modelMode),"Coverage: "+(report.coverage?.complete?"complete":"partial"),"","Not a certification or safe-to-merge claim.",...report.results.flatMap(r=>["","## "+safe(r.id)+": "+safe(r.text),"**"+r.verdict.toUpperCase()+"** — "+safe(r.reason),"Next: "+safe(r.nextTest),...r.evidence.map(evidence)])].join("\n");
 }

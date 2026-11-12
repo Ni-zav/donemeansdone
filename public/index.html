@@ -128,7 +128,7 @@ function renderReport(data){
   if(r.aiReason)card.append(node("p","AI hypothesis: "+r.aiReason,"muted"));
   const evidence=node("div");evidence.append(node("strong","Evidence: "));
   if(!r.evidence.length)evidence.append(node("span","None cited","muted"));
-  else{const ul=node("ul",undefined,"evidence-list");for(const e of r.evidence){const li=node("li");li.append(link(e.url,e.label));ul.append(li);}evidence.append(ul);}
+  else{const ul=node("ul",undefined,"evidence-list");for(const e of r.evidence){const li=node("li");if(e.url)li.append(link(e.url,e.label));else li.append(node("span",e.label+" (synthetic or uncited)","muted"));ul.append(li);}evidence.append(ul);}
   card.append(evidence);card.append(node("p","Next check: "+r.nextTest,"muted"));container.append(card);
  }
 }

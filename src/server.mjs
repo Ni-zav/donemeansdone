@@ -47,7 +47,7 @@ export function createApp() {
           modelMode = "recorded_synthetic_fixture";
           warning = "Demonstration mapping is recorded and synthetic, not live AI.";
         } else if (input.enableAi === true) {
-          const output = await aiProposal(snapshot, criteria);
+          const output = await aiProposal(snapshot, criteria, input.originalRequest);
           proposal = output.proposal;
           modelMode = output.mode;
           warning = output.warning;
